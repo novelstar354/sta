@@ -267,6 +267,7 @@ h3{
 </div>
 <script src="stations.js"></script>
 <script>
+let freezeUntil = 0;
 const fromEl=document.getElementById("from");
 const toEl=document.getElementById("to");
 const startEl=document.getElementById("start");
@@ -414,6 +415,8 @@ function randomDate(){
 }*/
 function buy(){
 
+  freezeUntil = Date.now() + 3000; // ←先にロック
+
   log("処理中...");
 
   requestAnimationFrame(()=>{
@@ -424,9 +427,6 @@ function buy(){
     let end = endEl.value;
 
     let via = getVia();
-
-    // 🔥 強制ランダム（まず確実に動作確認）
-    log("ランダム生成中...");
 
     do{
       from = randomStation();
@@ -457,7 +457,6 @@ function buy(){
 
   });
 }
-
 /* ===== その他 ===== */
 function save(){
   localStorage.setItem("tickets",JSON.stringify(tickets));
@@ -679,6 +678,10 @@ function getVia(){
 }
 function autoMutate(){
 
+  if(Date.now() < freezeUntil){
+    return; // ←これだけでOK（setTimeout禁止）
+  }
+
   if(!tickets.length){
     log("券がありません");
     return;
@@ -716,13 +719,21 @@ function autoMutate(){
   log("自動で更新されました。");
 }
 function loopMutate(){
+
+  if(Date.now() < freezeUntil){
+    setTimeout(loopMutate, 300);
+    return;
+  }
+
   autoMutate();
 
-  const next = Math.random()*4000 + 2000; // 2〜6秒
+  const next = Math.random()*4000 + 2000;
   setTimeout(loopMutate, next);
 }
 
-setTimeout(loopMutate, 3000);
+setTimeout(() => {
+  loopMutate();
+}, 3000);
 render();
 setupSuggest("from","fromSuggest");
 setupSuggest("to","toSuggest");
